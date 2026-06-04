@@ -4,6 +4,6 @@ namespace CoffeeMachineAPI.Interfaces
 {
     public interface ICoffeeService
     {
-        (int StatusCode, CoffeeResponse? Response) BrewCoffee();
+        Task<(int StatusCode, CoffeeResponse? Response)> BrewCoffee();
     }
 }

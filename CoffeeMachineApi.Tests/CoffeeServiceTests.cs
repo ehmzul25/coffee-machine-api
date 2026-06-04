@@ -1,4 +1,5 @@
 ﻿using CoffeeMachineApi.Services;
+using CoffeeMachineAPI.Services;
 
 namespace CoffeeMachineApi.Tests
 {
@@ -6,6 +7,7 @@ namespace CoffeeMachineApi.Tests
     {
         private CoffeeService _service;
         private FakeDateTimeProvider _fakeDate;
+        private FakeWeatherService _fakeWeather;
 
 
         [SetUp]
@@ -16,125 +18,128 @@ namespace CoffeeMachineApi.Tests
                 Now = DateTimeOffset.Now
             };
 
-            _service = new CoffeeService(_fakeDate);
+            _fakeWeather = new FakeWeatherService();
+
+            _service = new CoffeeService(_fakeDate, _fakeWeather);
         }
 
         [Test]
-        public void NormalCall_ShouldReturn200()
+        public async Task NormalCall_ShouldReturn200()
         {
-            var result = _service.BrewCoffee();
+            var result = await _service.BrewCoffee();
 
             Assert.That(result.StatusCode, Is.EqualTo(200));
             Assert.That(result.Response, Is.Not.Null);
         }
 
         [Test]
-        public void FifthCall_ShouldReturn503()
+        public async Task FifthCall_ShouldReturn503()
         {
             for (int i = 1; i <= 4; i++)
             {
-                _service.BrewCoffee();
+                await _service.BrewCoffee();
             }
 
-            var result = _service.BrewCoffee();
+            var result = await _service.BrewCoffee();
 
             Assert.That(result.StatusCode, Is.EqualTo(503));
             Assert.That(result.Response, Is.Null);
         }
 
         [Test]
-        public void April1st_ShouldReturn418()
+        public async Task April1st_ShouldReturn418()
         {
             _fakeDate.Now = new DateTimeOffset(2024, 4, 1, 10, 0, 0, TimeSpan.Zero);
 
-            var result = _service.BrewCoffee();
+            var result = await _service.BrewCoffee();
 
             Assert.That(result.StatusCode, Is.EqualTo(418));
             Assert.That(result.Response, Is.Null);
         }
 
         [Test]
-        public void Response_ShouldContainCorrectMessage()
+        public async Task Response_ShouldContainCorrectMessage()
         {
-            var result = _service.BrewCoffee();
+            var result = await _service.BrewCoffee();
 
-            Assert.That(result.Response.Message, Is.EqualTo("Your piping hot coffee is ready"));
+            Assert.That(result.Response.Message, Is.EqualTo("Your piping hot coffee is ready")
+                .Or.EqualTo("Your refreshing iced coffee is ready"));
         }
 
         [Test]
-        public void Response_ShouldHaveIso8601Date()
+        public async Task Response_ShouldHaveIso8601Date()
         {
             _fakeDate.Now = new DateTimeOffset(2024, 5, 10, 12, 30, 0, TimeSpan.Zero);
 
-            var result = _service.BrewCoffee();
+            var result = await _service.BrewCoffee();
 
             Assert.That(result.Response.Prepared, Does.Match(@"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.*"));
         }
 
         [Test]
-        public void PreparedDate_ShouldMatchInjectedDate()
+        public async Task PreparedDate_ShouldMatchInjectedDate()
         {
             _fakeDate.Now = new DateTimeOffset(2024, 5, 10, 12, 30, 0, TimeSpan.Zero);
 
-            var result = _service.BrewCoffee();
+            var result = await _service.BrewCoffee();
 
             Assert.That(result.Response.Prepared, Does.StartWith("2024-05-10T12:30:00"));
         }
 
         [Test]
-        public void FourthCall_ShouldStillReturn200()
+        public async Task FourthCall_ShouldStillReturn200()
         {
 
             for (int i = 0; i < 3; i++)
-                _service.BrewCoffee();
+                await _service.BrewCoffee();
 
-            var result = _service.BrewCoffee();
+            var result = await _service.BrewCoffee();
 
             Assert.That(result.StatusCode, Is.EqualTo(200));
         }
 
         [Test]
-        public void SixthCall_ShouldReturn200Again()
+        public async Task SixthCall_ShouldReturn200Again()
         {
             for (int i = 0; i < 5; i++)
-                _service.BrewCoffee();
+                await _service.BrewCoffee();
 
-            var result = _service.BrewCoffee();
+            var result = await _service.BrewCoffee();
 
             Assert.That(result.StatusCode, Is.EqualTo(200));
         }
 
         [Test]
-        public void April1st_ShouldOverrideFifthCall()
+        public async Task April1st_ShouldOverrideFifthCall()
         {
             _fakeDate.Now = new DateTimeOffset(2024, 4, 1, 10, 0, 0, TimeSpan.Zero);
 
             for (int i = 0; i < 5; i++)
             {
-                var result = _service.BrewCoffee();
+                var result = await _service.BrewCoffee();
                 Assert.That(result.StatusCode, Is.EqualTo(418));
             }
         }
 
         [Test]
-        public void FifthCall_ShouldReturnNullResponseBody()
+        public async Task FifthCall_ShouldReturnNullResponseBody()
         {
             for (int i = 0; i < 4; i++)
-                _service.BrewCoffee();
+                await _service.BrewCoffee();
 
-            var result = _service.BrewCoffee();
+            var result = await _service.BrewCoffee();
 
             Assert.That(result.Response, Is.Null);
         }
 
         [Test]
-        public void NewInstance_ShouldResetCounter()
+        public async Task NewInstance_ShouldResetCounter()
         {
             for (int i = 0; i < 5; i++)
-                _service.BrewCoffee();
+                await _service.BrewCoffee();
 
-            var newService = new CoffeeService(_fakeDate);
-            var result = newService.BrewCoffee();
+            var newService = new CoffeeService(_fakeDate, _fakeWeather);
+            var result = await newService.BrewCoffee();
 
             Assert.That(result.StatusCode, Is.EqualTo(200));
         }

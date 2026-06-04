@@ -15,9 +15,9 @@ namespace CoffeeMachineApi.Controllers
         }
 
         [HttpGet]
-        public IActionResult Brew()
+        public async Task<IActionResult> Brew()
         {
-            var result = _coffeeService.BrewCoffee();
+            var result = await _coffeeService.BrewCoffee();
 
             if (result.StatusCode == 200)
                 return Ok(result.Response);
